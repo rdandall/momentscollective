@@ -1,0 +1,13 @@
+{
+  "name": "momentscollective-brief-widget",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered Creative Brief Assistant for Moments Collective",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.36.3",
+    "resend": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

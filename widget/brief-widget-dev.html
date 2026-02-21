@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MC Brief Widget — Dev Harness</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0c0c0c;
+      color: rgba(255,255,255,0.7);
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      min-height: 100vh;
+    }
+
+    /* Simulated website content behind the widget */
+    .fake-site {
+      padding: 80px 60px;
+      max-width: 900px;
+    }
+
+    .fake-nav {
+      display: flex;
+      gap: 32px;
+      margin-bottom: 80px;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+    }
+
+    .fake-hero-label {
+      font-size: 9px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      margin-bottom: 16px;
+    }
+
+    .fake-hero-title {
+      font-size: clamp(36px, 6vw, 72px);
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      color: rgba(255,255,255,0.85);
+      line-height: 1.05;
+      margin-bottom: 24px;
+    }
+
+    .fake-hero-sub {
+      font-size: 13px;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 0.05em;
+      max-width: 480px;
+      line-height: 1.7;
+    }
+
+    .dev-badge {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: rgba(255, 200, 0, 0.15);
+      border: 1px solid rgba(255, 200, 0, 0.3);
+      color: rgba(255, 200, 0, 0.7);
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 5px 10px;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dev-badge">Dev Harness</div>
+
+  <!-- Simulated Moments Collective site background -->
+  <div class="fake-site">
+    <nav class="fake-nav">
+      <span>Work</span>
+      <span>Services</span>
+      <span>About</span>
+      <span>Contact</span>
+    </nav>
+
+    <p class="fake-hero-label">A NYC Production Agency</p>
+    <h1 class="fake-hero-title">
+      Story First,<br>Always.
+    </h1>
+    <p class="fake-hero-sub">
+      Shaping the future of visual storytelling through cinematic films,
+      photography, and digital experiences that help brands connect with
+      clarity and emotion.
+    </p>
+  </div>
+
+  <!-- The widget under test -->
+  <script src="./brief-widget.js"></script>
+
+</body>
+</html>

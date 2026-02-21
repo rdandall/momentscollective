@@ -1,0 +1,23 @@
+{
+  "functions": {
+    "api/chat.js": { "maxDuration": 30 },
+    "api/send-brief.js": { "maxDuration": 15 }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+      ]
+    },
+    {
+      "source": "/widget/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Cache-Control", "value": "public, max-age=3600" }
+      ]
+    }
+  ]
+}
