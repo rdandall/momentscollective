@@ -692,6 +692,7 @@
   // ─── DICTATION ────────────────────────────────────────────────────────────
   function initDictation() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    console.log('[MC Widget] initDictation called — SpeechRecognition available:', !!SpeechRecognition);
     if (!SpeechRecognition) return;
 
     // Dynamically inject the mic button only when speech is supported
@@ -982,7 +983,12 @@
   function setup() {
     injectStyles();
     createDOM();
-    initDictation();
+    try {
+      initDictation();
+    } catch (e) {
+      console.error('[MC Widget] initDictation failed:', e);
+    }
+    console.log('[MC Widget] setup complete — mic button in DOM:', !!document.getElementById('mc-mic'));
   }
 
   init();
