@@ -106,14 +106,15 @@
       #mc-trigger .mc-trigger-dot {
         width: 6px;
         height: 6px;
-        background: rgba(255,255,255,0.5);
+        background: #22c55e;
         border-radius: 50%;
+        box-shadow: 0 0 0 0 rgba(34,197,94,0.55);
         animation: mc-pulse 2.5s ease-in-out infinite;
       }
 
       @keyframes mc-pulse {
-        0%, 100% { opacity: 0.4; transform: scale(1); }
-        50% { opacity: 1; transform: scale(1.3); }
+        0%, 100% { opacity: 0.7; transform: scale(1); box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
+        50% { opacity: 1; transform: scale(1.3); box-shadow: 0 0 0 8px rgba(34,197,94,0); }
       }
 
       #mc-overlay {
@@ -611,7 +612,7 @@
     // Trigger button
     const trigger = document.createElement('button');
     trigger.id = 'mc-trigger';
-    trigger.innerHTML = `<span class="mc-trigger-dot"></span><span>Tell Us Your Story</span>`;
+    trigger.innerHTML = `<span class="mc-trigger-dot"></span><span>Send a Creative Brief</span>`;
     trigger.addEventListener('click', openPanel);
 
     // Overlay
