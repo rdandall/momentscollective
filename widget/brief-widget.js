@@ -18,6 +18,11 @@
     initialized: false,
   };
 
+  // ─── DICTATION STATE ──────────────────────────────────────────────────────
+  let recognition = null;
+  let isRecording = false;
+  let committedText = '';
+
   // ─── STYLES ───────────────────────────────────────────────────────────────
   function injectStyles() {
     const css = `
@@ -412,6 +417,37 @@
         cursor: not-allowed;
       }
 
+      #mc-mic {
+        width: 44px;
+        height: 44px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: rgba(255,255,255,0.6);
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+      }
+
+      #mc-mic:hover {
+        background: rgba(255,255,255,0.15);
+        color: rgba(255,255,255,0.9);
+      }
+
+      #mc-mic.mc-mic-active {
+        background: rgba(200,60,60,0.18);
+        border-color: rgba(200,60,60,0.45);
+        color: rgba(230,100,100,1);
+        animation: mc-mic-pulse 1.5s ease-in-out infinite;
+      }
+
+      @keyframes mc-mic-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(200,60,60,0.35); }
+        50% { box-shadow: 0 0 0 5px rgba(200,60,60,0); }
+      }
+
       #mc-powered {
         text-align: center;
         padding: 8px 0 4px;
@@ -482,6 +518,13 @@
           rows="1"
           aria-label="Your message"
         ></textarea>
+        <button id="mc-mic" aria-label="Start dictation">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="4.5" y="1" width="5" height="7.5" rx="2.5" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M1.5 7.5A5.5 5.5 0 0 0 12.5 7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            <line x1="7" y1="13" x2="7" y2="14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+        </button>
         <button id="mc-send" aria-label="Send message" disabled>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M7 1L7 13M7 1L2 6M7 1L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -550,6 +593,13 @@
   }
 
   function closePanel() {
+    if (isRecording) {
+      isRecording = false;
+      setMicInactive();
+      if (recognition) recognition.stop();
+      committedText = '';
+    }
+
     state.isOpen = false;
     document.getElementById('mc-panel').classList.remove('mc-open');
     document.getElementById('mc-overlay').classList.remove('mc-visible');
@@ -646,8 +696,109 @@
     }, 50);
   }
 
+  // ─── DICTATION ────────────────────────────────────────────────────────────
+  function initDictation() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const micBtn = document.getElementById('mc-mic');
+    micBtn.style.display = 'flex';
+
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event) => {
+      const input = document.getElementById('mc-input');
+      let interimTranscript = '';
+      let finalTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      if (finalTranscript) {
+        const space = committedText && !committedText.endsWith(' ') ? ' ' : '';
+        committedText += space + finalTranscript.trim();
+      }
+
+      const gap = committedText && interimTranscript ? ' ' : '';
+      input.value = committedText + gap + interimTranscript;
+
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+      document.getElementById('mc-send').disabled = input.value.trim().length === 0 || state.isLoading;
+    };
+
+    recognition.onend = () => {
+      if (isRecording) {
+        // Ended unexpectedly (timeout, etc.) — restart to keep listening
+        try { recognition.start(); } catch (_) {}
+      }
+    };
+
+    recognition.onerror = (event) => {
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        isRecording = false;
+        setMicInactive();
+      }
+    };
+
+    micBtn.addEventListener('click', toggleDictation);
+  }
+
+  function toggleDictation() {
+    if (!recognition) return;
+
+    if (isRecording) {
+      isRecording = false;
+      setMicInactive();
+      recognition.stop();
+    } else {
+      const input = document.getElementById('mc-input');
+      committedText = input.value;
+      isRecording = true;
+      setMicActive();
+      try {
+        recognition.start();
+      } catch (e) {
+        isRecording = false;
+        setMicInactive();
+      }
+    }
+  }
+
+  function setMicActive() {
+    const micBtn = document.getElementById('mc-mic');
+    if (micBtn) {
+      micBtn.classList.add('mc-mic-active');
+      micBtn.setAttribute('aria-label', 'Stop dictation');
+    }
+  }
+
+  function setMicInactive() {
+    const micBtn = document.getElementById('mc-mic');
+    if (micBtn) {
+      micBtn.classList.remove('mc-mic-active');
+      micBtn.setAttribute('aria-label', 'Start dictation');
+    }
+  }
+
   // ─── SEND MESSAGE ─────────────────────────────────────────────────────────
   async function sendMessage() {
+    // Stop dictation if active so the final text is committed
+    if (isRecording) {
+      isRecording = false;
+      setMicInactive();
+      if (recognition) recognition.stop();
+    }
+
     const input = document.getElementById('mc-input');
     const sendBtn = document.getElementById('mc-send');
     const text = input.value.trim();
@@ -662,6 +813,7 @@
     // Reset input
     input.value = '';
     input.style.height = 'auto';
+    committedText = '';
     sendBtn.disabled = true;
 
     // Show loading state
@@ -826,6 +978,7 @@
   function setup() {
     injectStyles();
     createDOM();
+    initDictation();
   }
 
   init();
