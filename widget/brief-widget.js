@@ -448,6 +448,76 @@
         50% { box-shadow: 0 0 0 5px rgba(200,60,60,0); }
       }
 
+      /* Contact capture */
+      .mc-contact-capture {
+        background: #0a0a0a;
+        border: 1px solid rgba(255,255,255,0.12);
+        padding: 24px;
+        margin: 8px 0;
+        animation: mc-fade-in 0.5s ease;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .mc-contact-input {
+        width: 100%;
+        background: #111;
+        border: 1px solid rgba(255,255,255,0.1);
+        color: rgba(255,255,255,0.85);
+        font-family: 'DM Mono', monospace;
+        font-size: 12px;
+        padding: 10px 12px;
+        outline: none;
+        margin-bottom: 12px;
+        box-sizing: border-box;
+        transition: border-color 0.2s ease;
+      }
+
+      .mc-contact-input:focus {
+        border-color: rgba(255,255,255,0.25);
+      }
+
+      .mc-contact-input::placeholder {
+        color: rgba(255,255,255,0.2);
+      }
+
+      .mc-contact-submit {
+        display: block;
+        width: 100%;
+        padding: 13px;
+        background: #ffffff;
+        color: #000000;
+        text-align: center;
+        font-family: 'DM Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        border: none;
+        cursor: pointer;
+        transition: background 0.2s ease, transform 0.15s ease;
+        box-sizing: border-box;
+      }
+
+      .mc-contact-submit:hover {
+        background: #e8e8e8;
+        transform: translateY(-1px);
+      }
+
+      .mc-contact-skip {
+        text-align: center;
+        margin-top: 12px;
+        font-family: 'DM Mono', monospace;
+        font-size: 9px;
+        letter-spacing: 0.12em;
+        color: rgba(255,255,255,0.22);
+        cursor: pointer;
+        text-transform: uppercase;
+      }
+
+      .mc-contact-skip:hover {
+        color: rgba(255,255,255,0.45);
+      }
+
       #mc-powered {
         text-align: center;
         padding: 8px 0 4px;
@@ -857,10 +927,9 @@
         state.messages.push({ role: 'brief', brief: data.brief });
         appendBriefCard(data.brief);
 
-        // Fire the email (non-blocking)
+        // Show contact capture — it handles sending the email once info is collected
         if (!state.emailSent) {
-          state.emailSent = true;
-          sendBriefEmail(data.brief);
+          appendContactCapture(data.brief);
         }
       }
 
@@ -933,6 +1002,69 @@
     scrollToBottom();
   }
 
+  function appendContactCapture(brief) {
+    const chatWindow = document.getElementById('mc-chat-window');
+
+    const card = document.createElement('div');
+    card.classList.add('mc-contact-capture');
+    card.innerHTML = `
+      <p class="mc-brief-eyebrow" style="margin-bottom:16px">One last thing</p>
+      <label class="mc-brief-label" for="mc-contact-name">Your Name</label>
+      <input id="mc-contact-name" class="mc-contact-input" type="text" placeholder="Jane Smith" autocomplete="name">
+      <label class="mc-brief-label" for="mc-contact-email">Your Email</label>
+      <input id="mc-contact-email" class="mc-contact-input" type="email" placeholder="jane@brand.com" autocomplete="email">
+      <button class="mc-contact-submit" id="mc-contact-submit">Send My Brief →</button>
+      <p class="mc-contact-skip" id="mc-contact-skip">Skip</p>
+    `;
+
+    chatWindow.appendChild(card);
+    scrollToBottom();
+
+    // Fallback: send without contact info after 60s if ignored
+    const timeout = setTimeout(() => {
+      if (!state.emailSent) {
+        state.emailSent = true;
+        sendBriefEmail(brief, null, null);
+      }
+      if (card.parentNode) card.remove();
+    }, 60000);
+
+    function submitContact() {
+      const name = document.getElementById('mc-contact-name').value.trim();
+      const email = document.getElementById('mc-contact-email').value.trim();
+
+      if (!email) {
+        const emailInput = document.getElementById('mc-contact-email');
+        emailInput.style.borderColor = 'rgba(200,60,60,0.6)';
+        emailInput.focus();
+        return;
+      }
+
+      clearTimeout(timeout);
+      card.innerHTML = `<p style="font-family:'DM Mono',monospace;font-size:12px;color:rgba(255,255,255,0.55);text-align:center;padding:4px 0;">Got it — we'll be in touch ✦</p>`;
+      scrollToBottom();
+
+      if (!state.emailSent) {
+        state.emailSent = true;
+        sendBriefEmail(brief, name || null, email);
+      }
+    }
+
+    document.getElementById('mc-contact-submit').addEventListener('click', submitContact);
+    document.getElementById('mc-contact-email').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submitContact();
+    });
+
+    document.getElementById('mc-contact-skip').addEventListener('click', () => {
+      clearTimeout(timeout);
+      card.remove();
+      if (!state.emailSent) {
+        state.emailSent = true;
+        sendBriefEmail(brief, null, null);
+      }
+    });
+  }
+
   function briefField(label, value) {
     if (!value) return '';
     return `
@@ -954,14 +1086,15 @@
   }
 
   // ─── EMAIL DISPATCH ───────────────────────────────────────────────────────
-  async function sendBriefEmail(brief) {
+  async function sendBriefEmail(brief, visitorName, visitorEmail) {
     try {
       await fetch(`${API_BASE}/api/send-brief`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           brief,
-          visitorEmail: null, // V2: collect email after brief renders
+          visitorName: visitorName || null,
+          visitorEmail: visitorEmail || null,
           sessionId: state.sessionId,
         }),
       });
