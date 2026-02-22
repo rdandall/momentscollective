@@ -28,6 +28,53 @@
     const css = `
       @import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;1,300&family=Playfair+Display:wght@400;500&display=swap');
 
+      #mc-tooltip {
+        position: fixed;
+        bottom: 82px;
+        right: 28px;
+        z-index: 99998;
+        background: #0d0d0d;
+        border: 1px solid rgba(255,255,255,0.18);
+        color: rgba(255,255,255,0.88);
+        font-family: 'DM Mono', 'Courier New', monospace;
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        padding: 10px 14px;
+        white-space: nowrap;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+        opacity: 0;
+        transform: translateY(5px);
+        transition: opacity 0.35s ease, transform 0.35s ease;
+        pointer-events: none;
+        cursor: pointer;
+      }
+
+      #mc-tooltip.mc-tooltip-visible {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: all;
+      }
+
+      #mc-tooltip::after {
+        content: '';
+        position: absolute;
+        bottom: -5px;
+        right: 16px;
+        width: 8px;
+        height: 8px;
+        background: #0d0d0d;
+        border-right: 1px solid rgba(255,255,255,0.18);
+        border-bottom: 1px solid rgba(255,255,255,0.18);
+        transform: rotate(45deg);
+      }
+
+      @media (max-width: 480px) {
+        #mc-tooltip {
+          bottom: 74px;
+          right: 20px;
+        }
+      }
+
       #mc-trigger {
         position: fixed;
         bottom: 28px;
@@ -555,6 +602,12 @@
 
   // ─── DOM CREATION ─────────────────────────────────────────────────────────
   function createDOM() {
+    // Tooltip
+    const tooltip = document.createElement('div');
+    tooltip.id = 'mc-tooltip';
+    tooltip.textContent = 'Got a project? Tell us your story.';
+    tooltip.addEventListener('click', openPanel);
+
     // Trigger button
     const trigger = document.createElement('button');
     trigger.id = 'mc-trigger';
@@ -597,6 +650,7 @@
       <div id="mc-powered">Moments Collective</div>
     `;
 
+    document.body.appendChild(tooltip);
     document.body.appendChild(trigger);
     document.body.appendChild(overlay);
     document.body.appendChild(panel);
@@ -626,8 +680,39 @@
     sendBtn.addEventListener('click', sendMessage);
   }
 
+  // ─── TOOLTIP ──────────────────────────────────────────────────────────────
+  function showTooltip() {
+    const tooltip = document.getElementById('mc-tooltip');
+    const trigger = document.getElementById('mc-trigger');
+    if (!tooltip) return;
+
+    let hideTimer;
+
+    const show = () => {
+      tooltip.classList.add('mc-tooltip-visible');
+      hideTimer = setTimeout(() => {
+        tooltip.classList.remove('mc-tooltip-visible');
+      }, 5000);
+    };
+
+    const hide = () => {
+      clearTimeout(hideTimer);
+      tooltip.classList.remove('mc-tooltip-visible');
+    };
+
+    // Show after 2.5s on page load
+    setTimeout(show, 2500);
+
+    // Hide when hovering the trigger button
+    trigger.addEventListener('mouseenter', hide);
+  }
+
   // ─── PANEL OPEN/CLOSE ─────────────────────────────────────────────────────
   function openPanel() {
+    // Dismiss tooltip
+    const tooltip = document.getElementById('mc-tooltip');
+    if (tooltip) tooltip.classList.remove('mc-tooltip-visible');
+
     state.isOpen = true;
     document.getElementById('mc-panel').classList.add('mc-open');
     document.getElementById('mc-overlay').classList.add('mc-visible');
@@ -1116,6 +1201,7 @@
   function setup() {
     injectStyles();
     createDOM();
+    showTooltip();
     try {
       initDictation();
     } catch (e) {
