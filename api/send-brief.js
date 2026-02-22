@@ -16,7 +16,7 @@ function formatDate(isoString) {
   }
 }
 
-function buildEmailHtml(brief, visitorEmail) {
+function buildEmailHtml(brief, visitorName, visitorEmail) {
   const toneStr = Array.isArray(brief.tone) ? brief.tone.join(' · ') : brief.tone;
   const generatedAt = formatDate(brief.generatedAt);
 
@@ -107,6 +107,7 @@ function buildEmailHtml(brief, visitorEmail) {
           <tr>
             <td>
               <table width="100%" cellpadding="0" cellspacing="0">
+                ${row('Visitor Name', visitorName || 'Not provided')}
                 ${row('Visitor Email', visitorEmail || 'Not provided')}
                 ${row('Session ID', brief.sessionId)}
                 ${row('Generated', generatedAt)}
@@ -144,7 +145,7 @@ module.exports = async (req, res) => {
 
   res.setHeader('Access-Control-Allow-Origin', '*');
 
-  const { brief, visitorEmail, sessionId } = req.body;
+  const { brief, visitorName, visitorEmail, sessionId } = req.body;
 
   if (!brief || !brief.projectTitle) {
     return res.status(400).json({ error: 'Valid brief object required' });
@@ -157,13 +158,13 @@ module.exports = async (req, res) => {
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
 
-    const subject = `New Creative Brief — ${brief.projectTitle} (${brief.clientBrand || 'Unknown Brand'})`;
+    const subject = `New Creative Brief — ${brief.projectTitle} (${visitorName || brief.clientBrand || 'Unknown'})`;
 
     const emailPayload = {
       from: process.env.FROM_EMAIL || 'briefs@momentscollective.com',
       to: [process.env.ROB_EMAIL || 'rob@momentscollective.com'],
       subject,
-      html: buildEmailHtml(brief, visitorEmail),
+      html: buildEmailHtml(brief, visitorName, visitorEmail),
     };
 
     if (visitorEmail && visitorEmail.includes('@')) {
