@@ -1020,14 +1020,14 @@
     chatWindow.appendChild(card);
     scrollToBottom();
 
-    // Fallback: send without contact info after 60s if ignored
+    // Fallback: send without contact info after 2 minutes if ignored
     const timeout = setTimeout(() => {
       if (!state.emailSent) {
         state.emailSent = true;
         sendBriefEmail(brief, null, null);
       }
       if (card.parentNode) card.remove();
-    }, 60000);
+    }, 120000);
 
     function submitContact() {
       const name = document.getElementById('mc-contact-name').value.trim();
