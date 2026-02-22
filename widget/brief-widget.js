@@ -37,9 +37,9 @@
         border: 1px solid rgba(0,0,0,0.12);
         color: #0d0d0d;
         font-family: 'DM Mono', 'Courier New', monospace;
-        font-size: 10px;
+        font-size: 11px;
         letter-spacing: 0.14em;
-        padding: 10px 14px;
+        padding: 11px 16px;
         white-space: nowrap;
         box-shadow: 0 4px 24px rgba(0,0,0,0.5);
         opacity: 0;
