@@ -2,7 +2,7 @@
   'use strict';
 
   // ─── CONFIGURATION ────────────────────────────────────────────────────────
-  const API_BASE = 'https://YOUR-VERCEL-URL.vercel.app'; // Update after Vercel deploy
+  const API_BASE = 'https://momentscollective.vercel.app';
   const BOOKING_URL = 'https://calendly.com/momentscollective'; // Update with Rob's actual URL
   const STORAGE_KEY = 'mc_brief_session';
 
