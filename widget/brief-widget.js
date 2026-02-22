@@ -33,7 +33,7 @@
         bottom: 82px;
         right: 28px;
         z-index: 99998;
-        background: #f2e8d5;
+        background: #e9e92f;
         border: 1px solid rgba(0,0,0,0.12);
         color: #0d0d0d;
         font-family: 'DM Mono', 'Courier New', monospace;
@@ -62,7 +62,7 @@
         right: 16px;
         width: 8px;
         height: 8px;
-        background: #f2e8d5;
+        background: #e9e92f;
         border-right: 1px solid rgba(0,0,0,0.12);
         border-bottom: 1px solid rgba(0,0,0,0.12);
         transform: rotate(45deg);
