@@ -33,9 +33,9 @@
         bottom: 82px;
         right: 28px;
         z-index: 99998;
-        background: #0d0d0d;
-        border: 1px solid rgba(255,255,255,0.18);
-        color: rgba(255,255,255,0.88);
+        background: #f2e8d5;
+        border: 1px solid rgba(0,0,0,0.12);
+        color: #0d0d0d;
         font-family: 'DM Mono', 'Courier New', monospace;
         font-size: 10px;
         letter-spacing: 0.14em;
@@ -62,9 +62,9 @@
         right: 16px;
         width: 8px;
         height: 8px;
-        background: #0d0d0d;
-        border-right: 1px solid rgba(255,255,255,0.18);
-        border-bottom: 1px solid rgba(255,255,255,0.18);
+        background: #f2e8d5;
+        border-right: 1px solid rgba(0,0,0,0.12);
+        border-bottom: 1px solid rgba(0,0,0,0.12);
         transform: rotate(45deg);
       }
 
