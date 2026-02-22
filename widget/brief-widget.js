@@ -424,7 +424,7 @@
         border: 1px solid rgba(255,255,255,0.1);
         color: rgba(255,255,255,0.6);
         cursor: pointer;
-        display: none;
+        display: flex;
         align-items: center;
         justify-content: center;
         transition: all 0.2s ease;
@@ -518,13 +518,6 @@
           rows="1"
           aria-label="Your message"
         ></textarea>
-        <button id="mc-mic" aria-label="Start dictation">
-          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="4.5" y="1" width="5" height="7.5" rx="2.5" stroke="currentColor" stroke-width="1.4"/>
-            <path d="M1.5 7.5A5.5 5.5 0 0 0 12.5 7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-            <line x1="7" y1="13" x2="7" y2="14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-          </svg>
-        </button>
         <button id="mc-send" aria-label="Send message" disabled>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M7 1L7 13M7 1L2 6M7 1L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -701,8 +694,19 @@
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
-    const micBtn = document.getElementById('mc-mic');
-    micBtn.style.display = 'flex';
+    // Dynamically inject the mic button only when speech is supported
+    const micBtn = document.createElement('button');
+    micBtn.id = 'mc-mic';
+    micBtn.setAttribute('aria-label', 'Start dictation');
+    micBtn.innerHTML = `
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4.5" y="1" width="5" height="7.5" rx="2.5" stroke="currentColor" stroke-width="1.4"/>
+        <path d="M1.5 7.5A5.5 5.5 0 0 0 12.5 7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        <line x1="7" y1="13" x2="7" y2="14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+    `;
+    const sendBtn = document.getElementById('mc-send');
+    sendBtn.parentNode.insertBefore(micBtn, sendBtn);
 
     recognition = new SpeechRecognition();
     recognition.continuous = true;
