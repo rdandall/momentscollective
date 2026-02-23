@@ -14,6 +14,7 @@
     isLoading: false,
     briefDetected: false,
     brief: null,
+    briefApproved: false,
     emailSent: false,
     initialized: false,
   };
@@ -404,6 +405,74 @@
         transform: translateY(-1px);
       }
 
+      .mc-brief-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .mc-brief-action-btn {
+        padding: 12px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: transparent;
+        color: rgba(255,255,255,0.78);
+        font-family: 'DM Mono', monospace;
+        font-size: 9px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: background 0.2s ease, border-color 0.2s ease;
+      }
+
+      .mc-brief-action-btn:hover:not(:disabled) {
+        background: rgba(255,255,255,0.08);
+        border-color: rgba(255,255,255,0.35);
+      }
+
+      .mc-brief-action-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .mc-brief-editor {
+        margin-top: 14px;
+        padding: 16px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.02);
+      }
+
+      .mc-brief-editor-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .mc-brief-edit-input,
+      .mc-brief-edit-textarea {
+        width: 100%;
+        background: #111;
+        border: 1px solid rgba(255,255,255,0.1);
+        color: rgba(255,255,255,0.85);
+        font-family: 'DM Mono', monospace;
+        font-size: 12px;
+        line-height: 1.5;
+        padding: 10px 12px;
+        outline: none;
+        box-sizing: border-box;
+      }
+
+      .mc-brief-edit-textarea {
+        min-height: 76px;
+        resize: vertical;
+      }
+
+      .mc-brief-editor-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
       /* Input area */
       #mc-input-area {
         display: flex;
@@ -592,6 +661,11 @@
         .mc-brief-card {
           padding: 20px;
         }
+
+        .mc-brief-actions,
+        .mc-brief-editor-actions {
+          grid-template-columns: 1fr;
+        }
       }
     `;
 
@@ -728,6 +802,9 @@
       const saved = restoreSession();
       if (saved) {
         renderSavedMessages();
+        if (state.briefApproved && state.brief && !state.emailSent) {
+          appendContactCapture(state.brief);
+        }
       } else {
         // Inject the first message locally for instant feel
         const greeting = "Hey — tell me about what you're working on. What kind of project is this?";
@@ -764,6 +841,7 @@
         sessionId: state.sessionId,
         briefDetected: state.briefDetected,
         brief: state.brief,
+        briefApproved: state.briefApproved,
         emailSent: state.emailSent,
       }));
     } catch (_) { /* sessionStorage might be unavailable */ }
@@ -778,6 +856,7 @@
       state.sessionId = saved.sessionId || state.sessionId;
       state.briefDetected = saved.briefDetected || false;
       state.brief = saved.brief || null;
+      state.briefApproved = saved.briefApproved || false;
       state.emailSent = saved.emailSent || false;
       return state.messages.length > 0;
     } catch (_) {
@@ -1010,13 +1089,9 @@
       if (data.briefDetected && data.brief) {
         state.briefDetected = true;
         state.brief = data.brief;
+        state.briefApproved = false;
         state.messages.push({ role: 'brief', brief: data.brief });
         appendBriefCard(data.brief);
-
-        // Show contact capture — it handles sending the email once info is collected
-        if (!state.emailSent) {
-          appendContactCapture(data.brief);
-        }
       }
 
       saveSession();
@@ -1082,13 +1157,47 @@
         rel="noopener noreferrer"
         class="mc-cta-btn"
       >Book a Call with Rob →</a>
+
+      ${state.emailSent ? '' : `
+        <div class="mc-brief-actions">
+          <button class="mc-brief-action-btn" data-brief-edit>Edit Brief</button>
+          <button class="mc-brief-action-btn" data-brief-approve ${state.briefApproved ? 'disabled' : ''}>
+            ${state.briefApproved ? 'Approved' : 'Approve Brief'}
+          </button>
+        </div>
+        <div class="mc-brief-editor" data-brief-editor style="display:none;">
+          <div class="mc-brief-editor-grid">
+            ${editField('Project Title', 'projectTitle', brief.projectTitle)}
+            ${editField('Project Type', 'projectType', brief.projectType)}
+            ${editField('Client / Brand', 'clientBrand', brief.clientBrand)}
+            ${editTextarea('Brand', 'brandDescription', brief.brandDescription)}
+            ${editTextarea('The Story', 'theStory', brief.theStory)}
+            ${editTextarea('Desired Outcome', 'desiredOutcome', brief.desiredOutcome)}
+            ${editField('Tone (comma separated)', 'tone', Array.isArray(brief.tone) ? brief.tone.join(', ') : brief.tone)}
+            ${editTextarea('Aesthetic References', 'aestheticReferences', brief.aestheticReferences)}
+            ${editTextarea('Deliverables', 'deliverables', brief.deliverables)}
+            ${editField('Timeline', 'timeline', brief.timeline)}
+            ${editField('Budget', 'budgetRange', brief.budgetRange)}
+            ${editTextarea('Special Requirements', 'specialRequirements', brief.specialRequirements || '')}
+            ${editTextarea("Producer's Note", 'producerNote', brief.producerNote)}
+          </div>
+          <div class="mc-brief-editor-actions">
+            <button class="mc-brief-action-btn" data-brief-save>Save Changes</button>
+            <button class="mc-brief-action-btn" data-brief-cancel>Cancel</button>
+          </div>
+        </div>
+      `}
     `;
 
     chatWindow.appendChild(card);
+    if (!state.emailSent) {
+      wireBriefActions(card, brief);
+    }
     scrollToBottom();
   }
 
   function appendContactCapture(brief) {
+    if (document.getElementById('mc-contact-submit')) return;
     const chatWindow = document.getElementById('mc-chat-window');
 
     const card = document.createElement('div');
@@ -1106,14 +1215,15 @@
     chatWindow.appendChild(card);
     scrollToBottom();
 
-    // Fallback: send without contact info after 2 minutes if ignored
+    // Fallback: send without contact info after 7 minutes if ignored
     const timeout = setTimeout(() => {
       if (!state.emailSent) {
         state.emailSent = true;
+        saveSession();
         sendBriefEmail(brief, null, null);
       }
       if (card.parentNode) card.remove();
-    }, 120000);
+    }, 420000);
 
     function submitContact() {
       const name = document.getElementById('mc-contact-name').value.trim();
@@ -1132,6 +1242,7 @@
 
       if (!state.emailSent) {
         state.emailSent = true;
+        saveSession();
         sendBriefEmail(brief, name || null, email);
       }
     }
@@ -1146,9 +1257,99 @@
       card.remove();
       if (!state.emailSent) {
         state.emailSent = true;
+        saveSession();
         sendBriefEmail(brief, null, null);
       }
     });
+  }
+
+  function wireBriefActions(card, brief) {
+    const editBtn = card.querySelector('[data-brief-edit]');
+    const approveBtn = card.querySelector('[data-brief-approve]');
+    const saveBtn = card.querySelector('[data-brief-save]');
+    const cancelBtn = card.querySelector('[data-brief-cancel]');
+    const editor = card.querySelector('[data-brief-editor]');
+
+    if (editBtn && editor) {
+      editBtn.addEventListener('click', () => {
+        editor.style.display = 'block';
+        editBtn.disabled = true;
+        if (approveBtn) approveBtn.disabled = true;
+      });
+    }
+
+    if (cancelBtn && editor) {
+      cancelBtn.addEventListener('click', () => {
+        editor.style.display = 'none';
+        editBtn.disabled = false;
+        if (approveBtn && !state.briefApproved) approveBtn.disabled = false;
+      });
+    }
+
+    if (saveBtn && editor) {
+      saveBtn.addEventListener('click', () => {
+        const updatedBrief = {
+          ...brief,
+          projectTitle: getEditorValue(editor, 'projectTitle'),
+          projectType: getEditorValue(editor, 'projectType'),
+          clientBrand: getEditorValue(editor, 'clientBrand'),
+          brandDescription: getEditorValue(editor, 'brandDescription'),
+          theStory: getEditorValue(editor, 'theStory'),
+          desiredOutcome: getEditorValue(editor, 'desiredOutcome'),
+          aestheticReferences: getEditorValue(editor, 'aestheticReferences'),
+          deliverables: getEditorValue(editor, 'deliverables'),
+          timeline: getEditorValue(editor, 'timeline'),
+          budgetRange: getEditorValue(editor, 'budgetRange'),
+          producerNote: getEditorValue(editor, 'producerNote'),
+        };
+
+        const toneRaw = getEditorValue(editor, 'tone');
+        updatedBrief.tone = toneRaw
+          ? toneRaw.split(',').map(t => t.trim()).filter(Boolean)
+          : [];
+
+        const specialRequirements = getEditorValue(editor, 'specialRequirements');
+        updatedBrief.specialRequirements = specialRequirements || null;
+
+        replaceBrief(updatedBrief);
+      });
+    }
+
+    if (approveBtn) {
+      approveBtn.addEventListener('click', () => {
+        if (state.briefApproved || state.emailSent) return;
+        state.briefApproved = true;
+        saveSession();
+        rerenderConversation();
+      });
+    }
+  }
+
+  function rerenderConversation() {
+    const chatWindow = document.getElementById('mc-chat-window');
+    chatWindow.innerHTML = '';
+    renderSavedMessages();
+    if (state.briefApproved && state.brief && !state.emailSent) {
+      appendContactCapture(state.brief);
+    }
+    scrollToBottom();
+  }
+
+  function replaceBrief(updatedBrief) {
+    state.brief = updatedBrief;
+    for (let i = state.messages.length - 1; i >= 0; i--) {
+      if (state.messages[i].role === 'brief') {
+        state.messages[i].brief = updatedBrief;
+        break;
+      }
+    }
+    saveSession();
+    rerenderConversation();
+  }
+
+  function getEditorValue(editor, field) {
+    const el = editor.querySelector(`[data-brief-field="${field}"]`);
+    return el ? el.value.trim() : '';
   }
 
   function briefField(label, value) {
@@ -1169,6 +1370,28 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  function escAttr(str) {
+    return escHtml(str || '').replace(/\n/g, ' ');
+  }
+
+  function editField(label, field, value) {
+    return `
+      <div>
+        <p class="mc-brief-label">${label}</p>
+        <input class="mc-brief-edit-input" data-brief-field="${field}" value="${escAttr(value)}">
+      </div>
+    `;
+  }
+
+  function editTextarea(label, field, value) {
+    return `
+      <div>
+        <p class="mc-brief-label">${label}</p>
+        <textarea class="mc-brief-edit-textarea" data-brief-field="${field}">${escHtml(value || '')}</textarea>
+      </div>
+    `;
   }
 
   // ─── EMAIL DISPATCH ───────────────────────────────────────────────────────
