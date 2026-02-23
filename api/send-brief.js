@@ -16,7 +16,7 @@ function formatDate(isoString) {
   }
 }
 
-function buildEmailHtml(brief, visitorName, visitorEmail) {
+function buildEmailHtml(brief, visitorName, visitorEmail, visitorPhone) {
   const toneStr = Array.isArray(brief.tone) ? brief.tone.join(' · ') : brief.tone;
   const generatedAt = formatDate(brief.generatedAt);
 
@@ -109,6 +109,7 @@ function buildEmailHtml(brief, visitorName, visitorEmail) {
               <table width="100%" cellpadding="0" cellspacing="0">
                 ${row('Visitor Name', visitorName || 'Not provided')}
                 ${row('Visitor Email', visitorEmail || 'Not provided')}
+                ${row('Visitor Phone', visitorPhone || 'Not provided')}
                 ${row('Session ID', brief.sessionId)}
                 ${row('Generated', generatedAt)}
               </table>
@@ -145,7 +146,7 @@ module.exports = async (req, res) => {
 
   res.setHeader('Access-Control-Allow-Origin', '*');
 
-  const { brief, visitorName, visitorEmail, sessionId } = req.body;
+  const { brief, visitorName, visitorEmail, visitorPhone, sessionId } = req.body;
 
   if (!brief || !brief.projectTitle) {
     return res.status(400).json({ error: 'Valid brief object required' });
@@ -164,7 +165,7 @@ module.exports = async (req, res) => {
       from: process.env.FROM_EMAIL || 'briefs@momentscollective.com',
       to: [process.env.ROB_EMAIL || 'rob@momentscollective.com'],
       subject,
-      html: buildEmailHtml(brief, visitorName, visitorEmail),
+      html: buildEmailHtml(brief, visitorName, visitorEmail, visitorPhone),
     };
 
     if (visitorEmail && visitorEmail.includes('@')) {

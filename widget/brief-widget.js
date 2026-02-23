@@ -15,6 +15,7 @@
     briefDetected: false,
     brief: null,
     briefApproved: false,
+    callCtaShown: false,
     emailSent: false,
     initialized: false,
   };
@@ -620,21 +621,6 @@
         transform: translateY(-1px);
       }
 
-      .mc-contact-skip {
-        text-align: center;
-        margin-top: 12px;
-        font-family: 'DM Mono', monospace;
-        font-size: 9px;
-        letter-spacing: 0.12em;
-        color: rgba(255,255,255,0.22);
-        cursor: pointer;
-        text-transform: uppercase;
-      }
-
-      .mc-contact-skip:hover {
-        color: rgba(255,255,255,0.45);
-      }
-
       #mc-powered {
         text-align: center;
         padding: 8px 0 4px;
@@ -802,7 +788,7 @@
       const saved = restoreSession();
       if (saved) {
         renderSavedMessages();
-        if (state.briefApproved && state.brief && !state.emailSent) {
+        if (state.briefApproved && state.brief && !state.emailSent && !state.callCtaShown) {
           appendContactCapture(state.brief);
         }
       } else {
@@ -842,6 +828,7 @@
         briefDetected: state.briefDetected,
         brief: state.brief,
         briefApproved: state.briefApproved,
+        callCtaShown: state.callCtaShown,
         emailSent: state.emailSent,
       }));
     } catch (_) { /* sessionStorage might be unavailable */ }
@@ -857,6 +844,7 @@
       state.briefDetected = saved.briefDetected || false;
       state.brief = saved.brief || null;
       state.briefApproved = saved.briefApproved || false;
+      state.callCtaShown = saved.callCtaShown || false;
       state.emailSent = saved.emailSent || false;
       return state.messages.length > 0;
     } catch (_) {
@@ -871,6 +859,8 @@
     state.messages.forEach((msg) => {
       if (msg.role === 'brief') {
         appendBriefCard(msg.brief);
+      } else if (msg.role === 'callCta') {
+        appendCallCta();
       } else {
         appendMessage(msg.role, msg.content);
       }
@@ -1090,6 +1080,7 @@
         state.briefDetected = true;
         state.brief = data.brief;
         state.briefApproved = false;
+        state.callCtaShown = false;
         state.messages.push({ role: 'brief', brief: data.brief });
         appendBriefCard(data.brief);
       }
@@ -1147,16 +1138,9 @@
       <hr class="mc-brief-divider">
 
       <div class="mc-brief-field">
-        <p class="mc-brief-label">Producer's Note</p>
-        <p class="mc-brief-producer-note">${escHtml(brief.producerNote)}</p>
+        <p class="mc-brief-label">Project Assessment</p>
+        <p class="mc-brief-producer-note">${escHtml(brief.projectAssessment || buildProjectAssessmentFromBrief(brief))}</p>
       </div>
-
-      <a
-        href="${BOOKING_URL}"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="mc-cta-btn"
-      >Book a Call with Rob →</a>
 
       ${state.emailSent ? '' : `
         <div class="mc-brief-actions">
@@ -1179,7 +1163,6 @@
             ${editField('Timeline', 'timeline', brief.timeline)}
             ${editField('Budget', 'budgetRange', brief.budgetRange)}
             ${editTextarea('Special Requirements', 'specialRequirements', brief.specialRequirements || '')}
-            ${editTextarea("Producer's Note", 'producerNote', brief.producerNote)}
           </div>
           <div class="mc-brief-editor-actions">
             <button class="mc-brief-action-btn" data-brief-save>Save Changes</button>
@@ -1198,6 +1181,7 @@
 
   function appendContactCapture(brief) {
     if (document.getElementById('mc-contact-submit')) return;
+    if (state.callCtaShown) return;
     const chatWindow = document.getElementById('mc-chat-window');
 
     const card = document.createElement('div');
@@ -1208,8 +1192,9 @@
       <input id="mc-contact-name" class="mc-contact-input" type="text" placeholder="Jane Smith" autocomplete="name">
       <label class="mc-brief-label" for="mc-contact-email">Your Email</label>
       <input id="mc-contact-email" class="mc-contact-input" type="email" placeholder="jane@brand.com" autocomplete="email">
+      <label class="mc-brief-label" for="mc-contact-phone">Phone (Optional)</label>
+      <input id="mc-contact-phone" class="mc-contact-input" type="tel" placeholder="(555) 123-4567" autocomplete="tel">
       <button class="mc-contact-submit" id="mc-contact-submit">Send My Brief →</button>
-      <p class="mc-contact-skip" id="mc-contact-skip">Skip</p>
     `;
 
     chatWindow.appendChild(card);
@@ -1228,6 +1213,7 @@
     function submitContact() {
       const name = document.getElementById('mc-contact-name').value.trim();
       const email = document.getElementById('mc-contact-email').value.trim();
+      const phone = document.getElementById('mc-contact-phone').value.trim();
 
       if (!email) {
         const emailInput = document.getElementById('mc-contact-email');
@@ -1242,8 +1228,11 @@
 
       if (!state.emailSent) {
         state.emailSent = true;
+        state.callCtaShown = true;
+        state.messages.push({ role: 'callCta' });
         saveSession();
-        sendBriefEmail(brief, name || null, email);
+        sendBriefEmail(brief, name || null, email, phone || null);
+        appendCallCta();
       }
     }
 
@@ -1252,15 +1241,6 @@
       if (e.key === 'Enter') submitContact();
     });
 
-    document.getElementById('mc-contact-skip').addEventListener('click', () => {
-      clearTimeout(timeout);
-      card.remove();
-      if (!state.emailSent) {
-        state.emailSent = true;
-        saveSession();
-        sendBriefEmail(brief, null, null);
-      }
-    });
   }
 
   function wireBriefActions(card, brief) {
@@ -1300,7 +1280,6 @@
           deliverables: getEditorValue(editor, 'deliverables'),
           timeline: getEditorValue(editor, 'timeline'),
           budgetRange: getEditorValue(editor, 'budgetRange'),
-          producerNote: getEditorValue(editor, 'producerNote'),
         };
 
         const toneRaw = getEditorValue(editor, 'tone');
@@ -1310,6 +1289,7 @@
 
         const specialRequirements = getEditorValue(editor, 'specialRequirements');
         updatedBrief.specialRequirements = specialRequirements || null;
+        updatedBrief.projectAssessment = buildProjectAssessmentFromBrief(updatedBrief);
 
         replaceBrief(updatedBrief);
       });
@@ -1329,7 +1309,7 @@
     const chatWindow = document.getElementById('mc-chat-window');
     chatWindow.innerHTML = '';
     renderSavedMessages();
-    if (state.briefApproved && state.brief && !state.emailSent) {
+    if (state.briefApproved && state.brief && !state.emailSent && !state.callCtaShown) {
       appendContactCapture(state.brief);
     }
     scrollToBottom();
@@ -1395,7 +1375,7 @@
   }
 
   // ─── EMAIL DISPATCH ───────────────────────────────────────────────────────
-  async function sendBriefEmail(brief, visitorName, visitorEmail) {
+  async function sendBriefEmail(brief, visitorName, visitorEmail, visitorPhone) {
     try {
       await fetch(`${API_BASE}/api/send-brief`, {
         method: 'POST',
@@ -1404,6 +1384,7 @@
           brief,
           visitorName: visitorName || null,
           visitorEmail: visitorEmail || null,
+          visitorPhone: visitorPhone || null,
           sessionId: state.sessionId,
         }),
       });
@@ -1411,6 +1392,52 @@
       console.error('[MC Widget] Email dispatch failed:', err);
       // Silent fail — don't surface this to the visitor
     }
+  }
+
+  function appendCallCta() {
+    const chatWindow = document.getElementById('mc-chat-window');
+    const wrapper = document.createElement('div');
+    wrapper.classList.add('mc-msg', 'mc-assistant');
+    wrapper.innerHTML = `
+      <div class="mc-msg-bubble">Your brief is in. If you want, you can lock in time with Rob now.</div>
+      <a
+        href="${BOOKING_URL}"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="mc-cta-btn"
+      >Book a Call with Rob →</a>
+    `;
+    chatWindow.appendChild(wrapper);
+    scrollToBottom();
+  }
+
+  function buildProjectAssessmentFromBrief(brief) {
+    const budget = (brief && brief.budgetRange ? String(brief.budgetRange) : '').toLowerCase();
+    const timeline = (brief && brief.timeline ? String(brief.timeline) : '').toLowerCase();
+    const deliverables = (brief && brief.deliverables ? String(brief.deliverables) : '').toLowerCase();
+
+    const tightBudget = budget.includes('under 5');
+    const higherBudget = budget.includes('over 25');
+    const fastTimeline = timeline.includes('asap') || timeline.includes('urgent') || timeline.includes('rush') || timeline.includes('week');
+    const broadScope = deliverables.includes(',') || deliverables.includes(' and ') || deliverables.includes('&');
+
+    if (tightBudget && (fastTimeline || broadScope)) {
+      return 'This ask is promising, with a few moving parts to balance. To keep results strong, we should prioritize the highest-impact deliverables first and phase anything secondary.';
+    }
+
+    if (fastTimeline) {
+      return 'The direction is clear and workable. The timeline sounds ambitious, so a focused scope and quick feedback rounds will be key to delivering this smoothly.';
+    }
+
+    if (tightBudget) {
+      return 'This is a strong concept with a practical scope. With clear priorities on the core story and outputs, this budget can still produce meaningful results.';
+    }
+
+    if (higherBudget) {
+      return 'This project has room for a more expansive execution. With alignment on goals and rollout, we can push both production quality and performance impact.';
+    }
+
+    return 'This ask looks well-positioned for production. Clear milestones and a defined approval flow will help keep quality high from concept through delivery.';
   }
 
   // ─── INIT ─────────────────────────────────────────────────────────────────

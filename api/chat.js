@@ -56,7 +56,8 @@ Then IMMEDIATELY output the brief JSON wrapped in <brief> tags:
   "timeline": "What they said, or 'TBD — to confirm with Rob' if unclear",
   "budgetRange": "Prefer one of: 'Under 5K' | '5K to 15K' | 'Over 25K'. If they give a custom number, map to the nearest range and keep the nuance in producerNote. Use 'TBD — to confirm with Rob' if unclear",
   "specialRequirements": "Anything unusual, or null",
-  "producerNote": "2-3 sentences. Your honest creative read — what's interesting about this project, what the real challenge is, what Rob should know walking in. Direct, story-first, no corporate language. This is the most valuable part."
+  "projectAssessment": "2-3 sentences, client-facing. Give a clear, respectful read on scope/tone/complexity and how to set the project up for success. Be transparent but never harsh or offensive.",
+  "producerNote": "2-3 sentences, private internal note for Rob only (not client-facing). Your honest creative read — what's interesting about this project, what the real challenge is, what Rob should know walking in. Direct, story-first, no corporate language. This is the most valuable part."
 }
 </brief>
 
