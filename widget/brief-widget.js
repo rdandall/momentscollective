@@ -672,7 +672,7 @@
     // Trigger button
     const trigger = document.createElement('button');
     trigger.id = 'mc-trigger';
-    trigger.innerHTML = `<span class="mc-trigger-dot"></span><span>Send a Creative Brief</span>`;
+    trigger.innerHTML = `<span class="mc-trigger-dot"></span><span>Generate a Creative Brief</span>`;
     trigger.addEventListener('click', openPanel);
 
     // Overlay
