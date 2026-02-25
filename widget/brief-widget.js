@@ -782,7 +782,9 @@
 
     if (!state.initialized) {
       state.initialized = true;
-      state.sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      state.sessionId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : Date.now().toString(36) + Array.from(crypto.getRandomValues(new Uint8Array(8))).map(b => b.toString(16).padStart(2, '0')).join('');
 
       // Try to restore session
       const saved = restoreSession();
@@ -1103,8 +1105,8 @@
     const chatWindow = document.getElementById('mc-chat-window');
 
     const toneHtml = Array.isArray(brief.tone)
-      ? brief.tone.map(t => `<span class="mc-tone-tag">${t}</span>`).join('')
-      : `<span class="mc-tone-tag">${brief.tone}</span>`;
+      ? brief.tone.map(t => `<span class="mc-tone-tag">${escHtml(t)}</span>`).join('')
+      : `<span class="mc-tone-tag">${escHtml(brief.tone)}</span>`;
 
     const card = document.createElement('div');
     card.classList.add('mc-brief-card');

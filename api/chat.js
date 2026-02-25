@@ -91,6 +91,20 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'messages array required' });
   }
 
+  const MAX_MESSAGE_LENGTH = 8000;
+  const validRoles = new Set(['user', 'assistant']);
+  for (const msg of messages) {
+    if (!msg || typeof msg !== 'object') {
+      return res.status(400).json({ error: 'Invalid message format' });
+    }
+    if (!validRoles.has(msg.role)) {
+      return res.status(400).json({ error: 'Invalid message role' });
+    }
+    if (typeof msg.content !== 'string' || msg.content.length > MAX_MESSAGE_LENGTH) {
+      return res.status(400).json({ error: 'Message content invalid or too long' });
+    }
+  }
+
   // Guard against excessively long sessions
   const trimmedMessages = messages.slice(-MAX_MESSAGES);
 
