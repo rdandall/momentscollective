@@ -1,5 +1,15 @@
 const { Resend } = require('resend');
 
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function formatDate(isoString) {
   try {
     return new Date(isoString).toLocaleString('en-US', {
@@ -25,13 +35,15 @@ function buildEmailHtml(brief, visitorName, visitorEmail, visitorPhone) {
       <td style="padding: 10px 0; vertical-align: top; width: 160px; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #555; font-family: 'Courier New', monospace; border-top: 1px solid #1a1a1a;">${label}</td>
       <td style="padding: 10px 0; vertical-align: top; font-size: 13px; color: #cccccc; line-height: 1.6; font-family: 'Courier New', monospace; border-top: 1px solid #1a1a1a;">${value}</td>
     </tr>` : '';
+  // safeRow escapes plain-text values before rendering into HTML
+  const safeRow = (label, value) => row(label, value ? escHtml(String(value)) : value);
 
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Creative Brief — ${brief.projectTitle}</title>
+  <title>Creative Brief — ${escHtml(brief.projectTitle)}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #080808; font-family: 'Courier New', monospace;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #080808; padding: 48px 24px;">
@@ -51,9 +63,9 @@ function buildEmailHtml(brief, visitorName, visitorEmail, visitorPhone) {
           <tr>
             <td style="padding: 28px 0 0 0;">
               <table width="100%" cellpadding="0" cellspacing="0">
-                ${row('Project', `<strong style="color: #ffffff; font-size: 15px;">${brief.projectTitle}</strong>`)}
-                ${row('Type', brief.projectType)}
-                ${row('Client / Brand', brief.clientBrand)}
+                ${row('Project', `<strong style="color: #ffffff; font-size: 15px;">${escHtml(brief.projectTitle)}</strong>`)}
+                ${safeRow('Type', brief.projectType)}
+                ${safeRow('Client / Brand', brief.clientBrand)}
               </table>
             </td>
           </tr>
@@ -65,11 +77,11 @@ function buildEmailHtml(brief, visitorName, visitorEmail, visitorPhone) {
           <tr>
             <td>
               <table width="100%" cellpadding="0" cellspacing="0">
-                ${row('Brand', brief.brandDescription)}
-                ${row('The Story', brief.theStory)}
-                ${row('Desired Outcome', brief.desiredOutcome)}
-                ${row('Tone', toneStr)}
-                ${row('Aesthetic References', brief.aestheticReferences)}
+                ${safeRow('Brand', brief.brandDescription)}
+                ${safeRow('The Story', brief.theStory)}
+                ${safeRow('Desired Outcome', brief.desiredOutcome)}
+                ${safeRow('Tone', toneStr)}
+                ${safeRow('Aesthetic References', brief.aestheticReferences)}
               </table>
             </td>
           </tr>
@@ -81,10 +93,10 @@ function buildEmailHtml(brief, visitorName, visitorEmail, visitorPhone) {
           <tr>
             <td>
               <table width="100%" cellpadding="0" cellspacing="0">
-                ${row('Deliverables', brief.deliverables)}
-                ${row('Timeline', brief.timeline)}
-                ${row('Budget', brief.budgetRange)}
-                ${row('Special Requirements', brief.specialRequirements || 'None mentioned')}
+                ${safeRow('Deliverables', brief.deliverables)}
+                ${safeRow('Timeline', brief.timeline)}
+                ${safeRow('Budget', brief.budgetRange)}
+                ${safeRow('Special Requirements', brief.specialRequirements || 'None mentioned')}
               </table>
             </td>
           </tr>
@@ -96,7 +108,7 @@ function buildEmailHtml(brief, visitorName, visitorEmail, visitorPhone) {
           <tr>
             <td>
               <p style="margin: 0 0 8px 0; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: #444;">Producer's Note</p>
-              <p style="margin: 0; font-size: 13px; color: #999999; line-height: 1.7; font-style: italic;">${brief.producerNote}</p>
+              <p style="margin: 0; font-size: 13px; color: #999999; line-height: 1.7; font-style: italic;">${escHtml(brief.producerNote)}</p>
             </td>
           </tr>
 
@@ -107,10 +119,10 @@ function buildEmailHtml(brief, visitorName, visitorEmail, visitorPhone) {
           <tr>
             <td>
               <table width="100%" cellpadding="0" cellspacing="0">
-                ${row('Visitor Name', visitorName || 'Not provided')}
-                ${row('Visitor Email', visitorEmail || 'Not provided')}
-                ${row('Visitor Phone', visitorPhone || 'Not provided')}
-                ${row('Session ID', brief.sessionId)}
+                ${safeRow('Visitor Name', visitorName || 'Not provided')}
+                ${safeRow('Visitor Email', visitorEmail || 'Not provided')}
+                ${safeRow('Visitor Phone', visitorPhone || 'Not provided')}
+                ${safeRow('Session ID', brief.sessionId)}
                 ${row('Generated', generatedAt)}
               </table>
             </td>
@@ -168,7 +180,8 @@ module.exports = async (req, res) => {
       html: buildEmailHtml(brief, visitorName, visitorEmail, visitorPhone),
     };
 
-    if (visitorEmail && visitorEmail.includes('@')) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (visitorEmail && emailRegex.test(visitorEmail)) {
       emailPayload.replyTo = visitorEmail;
     }
 
